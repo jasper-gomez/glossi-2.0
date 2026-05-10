@@ -45,7 +45,7 @@ def time():
 
 
 @component.add(
-    name="FINAL TIME", units="Month", comp_type="Constant", comp_subtype="Normal"
+    name="FINAL TIME", units="Day", comp_type="Constant", comp_subtype="Normal"
 )
 def final_time():
     """
@@ -55,7 +55,7 @@ def final_time():
 
 
 @component.add(
-    name="INITIAL TIME", units="Month", comp_type="Constant", comp_subtype="Normal"
+    name="INITIAL TIME", units="Day", comp_type="Constant", comp_subtype="Normal"
 )
 def initial_time():
     """
@@ -66,7 +66,7 @@ def initial_time():
 
 @component.add(
     name="SAVEPER",
-    units="Month",
+    units="Day",
     limits=(0.0, np.nan),
     comp_type="Auxiliary",
     comp_subtype="Normal",
@@ -81,8 +81,8 @@ def saveper():
 
 @component.add(
     name="TIME STEP",
-    units="Month",
-    limits=(0.0, np.nan),
+    units="Day",
+    limits=(0.0, 2.0, 0.1),
     comp_type="Constant",
     comp_subtype="Normal",
 )
@@ -99,52 +99,92 @@ def time_step():
 
 
 @component.add(
-    name="Probability to Wash",
+    name="Dryness Level",
+    comp_type="Stateful",
+    comp_subtype="Integ",
+    depends_on={"_integ_dryness_level": 1},
+    other_deps={
+        "_integ_dryness_level": {
+            "initial": {},
+            "step": {"dryness_rate": 1, "moisture_rate": 1},
+        }
+    },
+)
+def dryness_level():
+    return _integ_dryness_level()
+
+
+_integ_dryness_level = Integ(
+    lambda: dryness_rate() - moisture_rate(), lambda: 4.915, "_integ_dryness_level"
+)
+
+
+@component.add(
+    name="Moisture Rate",
     comp_type="Auxiliary",
     comp_subtype="Normal",
     depends_on={
-        "model_seed": 1,
-        "time": 1,
-        "oiliness_sensitivity": 1,
-        "discomfort_level_oily": 1,
+        "dryness_level": 1,
+        "target_dryness": 1,
+        "time_step": 1,
+        "moisturizing": 1,
+        "atmospheric_factors_2": 1,
     },
 )
-def probability_to_wash():
-    return if_then_else(
-        float(np.random.uniform(0, 1, size=()))
-        < discomfort_level_oily() * oiliness_sensitivity(),
-        lambda: 1,
-        lambda: 0,
+def moisture_rate():
+    return (
+        if_then_else(
+            dryness_level() > target_dryness(),
+            lambda: moisturizing() / time_step(),
+            lambda: 0,
+        )
+        + atmospheric_factors_2()
     )
 
 
 @component.add(
-    name="Model Seed",
-    limits=(0.0, 1000.0, 1.0),
-    comp_type="Constant",
-    comp_subtype="Normal",
+    name="Oiliness Level",
+    comp_type="Stateful",
+    comp_subtype="Integ",
+    depends_on={"_integ_oiliness_level": 1},
+    other_deps={
+        "_integ_oiliness_level": {
+            "initial": {"dryness_level": 1},
+            "step": {"moisture_rate": 1, "dryness_rate": 1},
+        }
+    },
 )
-def model_seed():
-    return 123
+def oiliness_level():
+    return _integ_oiliness_level()
+
+
+_integ_oiliness_level = Integ(
+    lambda: moisture_rate() - dryness_rate(),
+    lambda: 10 - dryness_level(),
+    "_integ_oiliness_level",
+)
 
 
 @component.add(
-    name="Probability to Treat",
+    name="Dryness Rate",
     comp_type="Auxiliary",
     comp_subtype="Normal",
     depends_on={
-        "model_seed": 1,
-        "time": 1,
-        "dryness_sensitivity": 1,
-        "discomfort_level_dry": 1,
+        "oiliness_level": 1,
+        "oiliness_threshold": 1,
+        "time_step": 1,
+        "hair_cleaning": 1,
+        "atmospheric_factors_1": 1,
     },
 )
-def probability_to_treat():
-    return if_then_else(
-        float(np.random.uniform(0, 1, size=()))
-        < discomfort_level_dry() * dryness_sensitivity(),
-        lambda: 1,
-        lambda: 0,
+def dryness_rate():
+    return (
+        if_then_else(
+            oiliness_level() > oiliness_threshold(),
+            lambda: hair_cleaning() / time_step(),
+            lambda: 0,
+        )
+        + atmospheric_factors_1()
     )
 
 
@@ -179,55 +219,6 @@ def moisturizing():
 
 
 @component.add(
-    name="Dryness Sensitivity",
-    limits=(0.01, 1.0, 0.01),
-    comp_type="Constant",
-    comp_subtype="Normal",
-)
-def dryness_sensitivity():
-    return 0.5
-
-
-@component.add(
-    name='"Discomfort Level (Dry)"',
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={"dryness_level": 1, "target_dryness": 1},
-)
-def discomfort_level_dry():
-    return float(np.maximum(0, dryness_level() - target_dryness()))
-
-
-@component.add(
-    name='"Discomfort Level (Oily)"',
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={"oiliness_threshold": 1, "dryness_level": 1},
-)
-def discomfort_level_oily():
-    return float(np.maximum(0, oiliness_threshold() - dryness_level()))
-
-
-@component.add(
-    name="Moisture Rate",
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={
-        "time": 1,
-        "probability_to_treat": 1,
-        "moisturizing": 1,
-        "atmospheric_factors_2": 2,
-    },
-)
-def moisture_rate():
-    return if_then_else(
-        float(np.random.uniform(0, 1, size=())) < probability_to_treat(),
-        lambda: moisturizing() + atmospheric_factors_2(),
-        lambda: atmospheric_factors_2(),
-    )
-
-
-@component.add(
     name="Hair Cleaning",
     comp_type="Auxiliary",
     comp_subtype="Normal",
@@ -235,35 +226,6 @@ def moisture_rate():
 )
 def hair_cleaning():
     return shampoo()
-
-
-@component.add(
-    name="Oiliness Sensitivity",
-    limits=(0.01, 1.0, 0.01),
-    comp_type="Constant",
-    comp_subtype="Normal",
-)
-def oiliness_sensitivity():
-    return 0.5
-
-
-@component.add(
-    name="Dryness Rate",
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={
-        "time": 1,
-        "probability_to_wash": 1,
-        "hair_cleaning": 1,
-        "atmospheric_factors_1": 2,
-    },
-)
-def dryness_rate():
-    return if_then_else(
-        float(np.random.uniform(0, 1, size=())) < probability_to_wash(),
-        lambda: hair_cleaning() + atmospheric_factors_1(),
-        lambda: atmospheric_factors_1(),
-    )
 
 
 @component.add(name="Bath Intensity", comp_type="Constant", comp_subtype="Normal")
@@ -274,27 +236,6 @@ def bath_intensity():
 @component.add(name="Conditioner", comp_type="Constant", comp_subtype="Normal")
 def conditioner():
     return 0.029
-
-
-@component.add(
-    name="Dryness Level",
-    comp_type="Stateful",
-    comp_subtype="Integ",
-    depends_on={"_integ_dryness_level": 1},
-    other_deps={
-        "_integ_dryness_level": {
-            "initial": {},
-            "step": {"dryness_rate": 1, "moisture_rate": 1},
-        }
-    },
-)
-def dryness_level():
-    return _integ_dryness_level()
-
-
-_integ_dryness_level = Integ(
-    lambda: dryness_rate() - moisture_rate(), lambda: 4.915, "_integ_dryness_level"
-)
 
 
 @component.add(name="Humidity", comp_type="Constant", comp_subtype="Normal")
@@ -319,7 +260,7 @@ def leavein():
     comp_subtype="Normal",
 )
 def oiliness_threshold():
-    return 2.5
+    return 5.5
 
 
 @component.add(name="Shampoo", comp_type="Constant", comp_subtype="Normal")
