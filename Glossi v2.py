@@ -126,8 +126,8 @@ _integ_dryness_level = Integ(
     depends_on={
         "dryness_level": 1,
         "target_dryness": 1,
-        "time_step": 1,
         "moisturizing": 1,
+        "time_step": 1,
         "atmospheric_factors_2": 1,
     },
 )
@@ -172,8 +172,8 @@ _integ_oiliness_level = Integ(
     depends_on={
         "oiliness_level": 1,
         "oiliness_threshold": 1,
-        "time_step": 1,
         "hair_cleaning": 1,
+        "time_step": 1,
         "atmospheric_factors_1": 1,
     },
 )
