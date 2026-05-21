@@ -16,7 +16,7 @@ Glossi 2.0 aims to create a digital simulation of the hair data I gathered durin
 3. **Model Development**: Developed a simple Linear Regression (LR) model.
 4. **Coefficient Extraction**: Using the LR model, the coefficients and intercept have been used as empirical ground truth for system parameters.
 5. **Simulation Modeling**: Created a Stochastic SD model in Vensim.
-6. **Probabilistic Analysis**: Leveraged parallel programming to execute high-throughput Monte Carlo sampling.
+6. **Model Recalibration**: Conducted a structural parameter recalibration to optimize model behavior and eliminate systemic bias and variance error.
 
 ---
 
@@ -43,3 +43,14 @@ Glossi 2.0 aims to create a digital simulation of the hair data I gathered durin
 - `humidity`: - 0.01720086
 - `bath_intensity`: - 0.01400846
 - `wind_exposure`: 0.06599629
+
+---
+
+### 🔧Model Recalibration (Simulation Model)
+
+#### **Optimal Scaling Factor**: 5.05
+**Theil's Statistics**
+- MSE: 3.4878
+- $U^m = 0.0$ (Bias Proportion)
+- $U^s = 0.0$ (Variance Proportion)
+- $U^c = 1.0$ (Covariation Proportion)

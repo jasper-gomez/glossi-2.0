@@ -99,6 +99,64 @@ def time_step():
 
 
 @component.add(
+    name="Moisture Rate",
+    comp_type="Auxiliary",
+    comp_subtype="Normal",
+    depends_on={
+        "dryness_level": 1,
+        "target_dryness": 1,
+        "moisturizing": 1,
+        "time_step": 1,
+        "scaling_factor": 1,
+        "atmospheric_factors_2": 1,
+    },
+)
+def moisture_rate():
+    return (
+        if_then_else(
+            dryness_level() > target_dryness(),
+            lambda: (moisturizing() * scaling_factor()) / time_step(),
+            lambda: 0,
+        )
+        + atmospheric_factors_2()
+    )
+
+
+@component.add(
+    name="Dryness Rate",
+    comp_type="Auxiliary",
+    comp_subtype="Normal",
+    depends_on={
+        "oiliness_level": 1,
+        "oiliness_threshold": 1,
+        "hair_cleaning": 1,
+        "time_step": 1,
+        "scaling_factor": 1,
+        "atmospheric_factors_1": 1,
+    },
+)
+def dryness_rate():
+    return (
+        if_then_else(
+            oiliness_level() > oiliness_threshold(),
+            lambda: (hair_cleaning() * scaling_factor()) / time_step(),
+            lambda: 0,
+        )
+        + atmospheric_factors_1()
+    )
+
+
+@component.add(
+    name="Scaling Factor",
+    limits=(1.0, 10.0, 0.1),
+    comp_type="Constant",
+    comp_subtype="Normal",
+)
+def scaling_factor():
+    return 5.05
+
+
+@component.add(
     name="Dryness Level",
     comp_type="Stateful",
     comp_subtype="Integ",
@@ -117,29 +175,6 @@ def dryness_level():
 _integ_dryness_level = Integ(
     lambda: dryness_rate() - moisture_rate(), lambda: 4.915, "_integ_dryness_level"
 )
-
-
-@component.add(
-    name="Moisture Rate",
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={
-        "dryness_level": 1,
-        "target_dryness": 1,
-        "moisturizing": 1,
-        "time_step": 1,
-        "atmospheric_factors_2": 1,
-    },
-)
-def moisture_rate():
-    return (
-        if_then_else(
-            dryness_level() > target_dryness(),
-            lambda: moisturizing() / time_step(),
-            lambda: 0,
-        )
-        + atmospheric_factors_2()
-    )
 
 
 @component.add(
@@ -163,29 +198,6 @@ _integ_oiliness_level = Integ(
     lambda: 10 - dryness_level(),
     "_integ_oiliness_level",
 )
-
-
-@component.add(
-    name="Dryness Rate",
-    comp_type="Auxiliary",
-    comp_subtype="Normal",
-    depends_on={
-        "oiliness_level": 1,
-        "oiliness_threshold": 1,
-        "hair_cleaning": 1,
-        "time_step": 1,
-        "atmospheric_factors_1": 1,
-    },
-)
-def dryness_rate():
-    return (
-        if_then_else(
-            oiliness_level() > oiliness_threshold(),
-            lambda: hair_cleaning() / time_step(),
-            lambda: 0,
-        )
-        + atmospheric_factors_1()
-    )
 
 
 @component.add(

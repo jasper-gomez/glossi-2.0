@@ -1,7 +1,7 @@
 import numpy as np
 from  sklearn.metrics import mean_squared_error
 
-def theils_stats(actual: np.ndarray, simulated: np.ndarray) -> dict:
+def theils_stats(actual: np.ndarray, simulated: np.ndarray, show:bool=False) -> dict:
     """
     Calculates Theil's Inequality Proportions (Um, Us, Uc)
 
@@ -44,13 +44,13 @@ def theils_stats(actual: np.ndarray, simulated: np.ndarray) -> dict:
     Us = var_comp / mse
     Uc = cov_comp / mse
     
-    # Print a summary report
-    print(f"--- Theil's Decomposition Report ---")
-    print(f"Total MSE: {mse:.4f}")
-    print(f"Um (Bias Proportion):      {Um:.4f} (Ideal: close to 0)")
-    print(f"Us (Variance Proportion):  {Us:.4f} (Ideal: close to 0)")
-    print(f"Uc (Covariation Prop):     {Uc:.4f} (Ideal: close to 1)")
-    print(f"Sum check (Should be 1.0): {Um + Us + Uc:.4f}")
+    if show:
+        print(f"--- Theil's Decomposition Report ---")
+        print(f"Total MSE: {mse:.4f}")
+        print(f"Um (Bias Proportion):      {Um:.4f} (Ideal: close to 0)")
+        print(f"Us (Variance Proportion):  {Us:.4f} (Ideal: close to 0)")
+        print(f"Uc (Covariation Prop):     {Uc:.4f} (Ideal: close to 1)")
+        print(f"Sum check (Should be 1.0): {Um + Us + Uc:.4f}")
     
     return {"Um": Um, "Us": Us, "Uc": Uc, "MSE": mse}
 
